@@ -23,6 +23,7 @@ void hMain()
             }
             else if (c == 'e') {
                 hLED1.toggle();
+                sys.delay(500);
                 hExt.serial.printf("LED1: TOGGLE\r\n");
             }
             else {
