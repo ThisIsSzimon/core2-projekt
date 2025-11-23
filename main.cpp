@@ -122,15 +122,15 @@ void hMain()
             if (s1Desk && s4Desk) {
                 if (alignStartTime == 0) {
                     alignStartTime = now;
-                    Serial.printf("Bridge align condition START (d1 & d4 nad biurkiem)\r\n");
+                    Serial.printf("KROK 2: Bridge align condition START (d1 & d4 nad biurkiem)\r\n");
                 } else if (now - alignStartTime >= BRIDGE_ALIGN_STABLE_MS) {
-                    Serial.printf("Bridge align STABLE -> start BRIDGE_DOWN_ROBOT_UP\r\n");
+                    Serial.printf("KROK 2: Bridge align STABLE -> start BRIDGE_DOWN_ROBOT_UP\r\n");
                     state = State::BRIDGE_DOWN_ROBOT_UP;
                     stateEntryTime = now;
                 }
             } else {
                 if (alignStartTime != 0) {
-                    Serial.printf("Bridge align LOST, reset timer\r\n");
+                    Serial.printf("KROK 2: Bridge align LOST, reset timer\r\n");
                 }
                 alignStartTime = 0;
             }
@@ -148,7 +148,7 @@ void hMain()
             if (elapsed >= BRIDGE_DOWN_ROBOT_UP_TIME_MS) {
                 hMot2.setPower(0);
                 hMot3.setPower(0);
-                Serial.printf("BRIDGE_DOWN_ROBOT_UP done -> MOVE_ROBOT_ACROSS\r\n");
+                Serial.printf("KROK 3: BRIDGE_DOWN_ROBOT_UP done -> MOVE_ROBOT_ACROSS\r\n");
 
                 state = State::MOVE_ROBOT_ACROSS;
                 stateEntryTime = now;
@@ -162,19 +162,19 @@ void hMain()
             // --- KROK 4: przejazd robota po moście (hMot4.rotRel) ---
             if (!h4MoveStarted) {
                 h4MoveStarted = true;
-                Serial.printf("MOVE_ROBOT_ACROSS: start hMot4.rotRel(+ticks)\r\n");
+                Serial.printf("KROK 4: MOVE_ROBOT_ACROSS: start hMot4.rotRel(+ticks)\r\n");
 
                 // RUCH BLOKUJĄCY – robot jedzie po moście
                 hMot4.rotRel(H4_ROT_TICKS, H4_ROT_SPEED, true, INFINITE);
 
                 stateEntryTime = sys.getRefTime();
-                Serial.printf("MOVE_ROBOT_ACROSS: finished, czekam na sens2 & sens3 desk\r\n");
+                Serial.printf("KROK 4: MOVE_ROBOT_ACROSS: finished, czekam na sens2 & sens3 desk\r\n");
             } else {
                 bool s2Desk = isDesk(d2);
                 bool s3Desk = isDesk(d3);
 
                 if ((now - stateEntryTime >= WAIT_AFTER_H4_MS) && s2Desk && s3Desk) {
-                    Serial.printf("Robot na biurku (sens2 & sens3 desk) -> BRIDGE_UP_ROBOT_DOWN\r\n");
+                    Serial.printf("KROK 4: Robot na biurku (sens2 & sens3 desk) -> BRIDGE_UP_ROBOT_DOWN\r\n");
                     state = State::BRIDGE_UP_ROBOT_DOWN;
                     stateEntryTime = now;
                 }
@@ -193,7 +193,7 @@ void hMain()
             if (elapsed >= BRIDGE_UP_ROBOT_DOWN_TIME_MS) {
                 hMot2.setPower(0);
                 hMot3.setPower(0);
-                Serial.printf("BRIDGE_UP_ROBOT_DOWN done -> MOVE_BRIDGE_AHEAD\r\n");
+                Serial.printf("KROK 5: BRIDGE_UP_ROBOT_DOWN done -> MOVE_BRIDGE_AHEAD\r\n");
 
                 state = State::MOVE_BRIDGE_AHEAD;
                 stateEntryTime = now;
@@ -208,12 +208,12 @@ void hMain()
             //             aby wystawić most przed robota na nowym biurku ---
             if (!h4MoveStarted) {
                 h4MoveStarted = true;
-                Serial.printf("MOVE_BRIDGE_AHEAD: start hMot4.rotRel(-ticks)\r\n");
+                Serial.printf("KROK 6: MOVE_BRIDGE_AHEAD: start hMot4.rotRel(-ticks)\r\n");
 
                 // RUCH BLOKUJĄCY – most jedzie do przodu względem robota
                 hMot4.rotRel(-H4_ROT_TICKS, H4_ROT_SPEED, true, INFINITE);
 
-                Serial.printf("MOVE_BRIDGE_AHEAD: finished -> wracamy do SEARCH_CANYON na kolejnym stole\r\n");
+                Serial.printf("KROK 6: MOVE_BRIDGE_AHEAD: finished -> wracamy do SEARCH_CANYON na kolejnym stole\r\n");
 
                 // Przygotowanie do kolejnego cyklu na nowym biurku:
                 hMot1.setPower(0);
