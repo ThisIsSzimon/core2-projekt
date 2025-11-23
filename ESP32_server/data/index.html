@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>CORE2 – sterowanie LED</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 40px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .led-container {
+      display: inline-block;
+      text-align: left;
+      margin-top: 30px;
+    }
+    .led-row {
+      margin: 10px 0;
+      padding: 10px 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 260px;
+    }
+    .led-label {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .led-state {
+      margin-left: 10px;
+      font-weight: bold;
+    }
+    .btn {
+      padding: 8px 18px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+    }
+    .on {
+      background: #4CAF50;
+      color: white;
+    }
+    .off {
+      background: #f44336;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sterowanie ESP32 -> STM32 CORE2</h1>
+
+
+  <div class="led-container">
+    <div class="led-row" id="row1">
+      <span>
+        <span class="led-label">hLED1</span>
+        <span class="led-state" id="state1">?</span>
+      </span>
+      <button id="btn1" class="btn" onclick="toggleCore2(1)">...</button>
+    </div>
+
+    <div class="led-row" id="row2">
+      <span>
+        <span class="led-label">hLED2</span>
+        <span class="led-state" id="state2">?</span>
+      </span>
+      <button id="btn2" class="btn" onclick="toggleCore2(2)">...</button>
+    </div>
+
+    <div class="led-row" id="row3">
+      <span>
+        <span class="led-label">hLED3</span>
+        <span class="led-state" id="state3">?</span>
+      </span>
+      <button id="btn3" class="btn" onclick="toggleCore2(3)">...</button>
+    </div>
+  </div>
+
+  <script>
+    const ledStates = {
+      1: false,
+      2: false,
+      3: false
+    };
+
+    function updateLedUI(id) {
+      const isOn = ledStates[id];
+      const stateSpan = document.getElementById('state' + id);
+      const btn = document.getElementById('btn' + id);
+
+      if (isOn) {
+        stateSpan.textContent = 'ZAPALONA';
+        btn.textContent = 'Zgaś';
+        btn.classList.remove('on');
+        btn.classList.add('off');
+      } else {
+        stateSpan.textContent = 'ZGASZONA';
+        btn.textContent = 'Zapal';
+        btn.classList.remove('off');
+        btn.classList.add('on');
+      }
+    }
+
+    function updateAllUI() {
+      updateLedUI(1);
+      updateLedUI(2);
+      updateLedUI(3);
+    }
+
+    async function fetchCore2State() {
+      try {
+        const res = await fetch('/core2/state');
+        const txt = await res.text();  // np. "010"
+        if (txt.length >= 3) {
+          ledStates[1] = (txt[0] === '1');
+          ledStates[2] = (txt[1] === '1');
+          ledStates[3] = (txt[2] === '1');
+        }
+        updateAllUI();
+      } catch (e) {
+        console.error('Blad pobierania stanu:', e);
+      }
+    }
+
+    async function toggleCore2(id) {
+      try {
+        const res = await fetch('/core2/toggle?id=' + id);
+        const txt = await res.text();  // "0" lub "1"
+        ledStates[id] = (txt === '1');
+        updateLedUI(id);
+      } catch (e) {
+        console.error('Blad toggle:', e);
+      }
+    }
+
+    window.addEventListener('load', fetchCore2State);
+  </script>
+</body>
+</html>
