@@ -22,12 +22,13 @@ const uint32_t WAIT_AFTER_H4_MS = 500; // przerwa po przejechaniu po moście
 
 // ----------------- Stany automatu -----------------
 enum class State {
-    SEARCH_CANYON,           // jedziemy do przodu, aż zobaczymy kanion (czujnik 3)
-    WAIT_BRIDGE_ALIGN,       // czekamy aż czujnik 1 i 4 są nad biurkiem (stabilnie)
-    BRIDGE_DOWN_ROBOT_UP,    // hMot2 i hMot3 opuszczają most + podnoszą robota (czasowo)
-    MOVE_ROBOT_ACROSS,       // hMot4 przewozi robota po moście
-    BRIDGE_UP_ROBOT_DOWN,    // hMot2 i hMot3 podnoszą most + opuszczają robota (czasowo)
-    MOVE_BRIDGE_AHEAD        // hMot4 wraca o tyle samo, żeby most znów był przed robotem
+    WAIT_START,             // czekamy na wciśnięcie hBtn1
+    SEARCH_CANYON,          // jedziemy do przodu, aż zobaczymy kanion (czujnik 3)
+    WAIT_BRIDGE_ALIGN,      // czekamy aż czujnik 1 i 4 są nad biurkiem (stabilnie)
+    BRIDGE_DOWN_ROBOT_UP,   // hMot2 i hMot3 opuszczają most + podnoszą robota (czasowo)
+    MOVE_ROBOT_ACROSS,      // hMot4 przewozi robota po moście
+    BRIDGE_UP_ROBOT_DOWN,   // hMot2 i hMot3 podnoszą most + opuszczają robota (czasowo)
+    MOVE_BRIDGE_AHEAD       // hMot4 wraca o tyle samo, żeby most znów był przed robotem
 };
 
 // ----------------- Funkcje pomocnicze -----------------
@@ -72,13 +73,14 @@ void hMain()
     hMot3.setPower(0);
     hMot4.setPower(0);
 
-    State state = State::SEARCH_CANYON;
+    State state = State::WAIT_START;   // <<< nowy stan startowy
 
     uint64_t stateEntryTime = sys.getRefTime();
     uint64_t alignStartTime = 0;  // kiedy d1 i d4 jednocześnie wykryły biurko
     bool h4MoveStarted = false;   // używane w stanach MOVE_ROBOT_ACROSS i MOVE_BRIDGE_AHEAD
 
     Serial.printf("START: automat kanionu z cyklem wielostolowym.\r\n");
+    Serial.printf("Wcisnij hBtn1 aby wystartowac automat.\r\n");
 
     for (;;)
     {
@@ -89,10 +91,30 @@ void hMain()
 
         uint64_t now = sys.getRefTime();
 
-        Serial.printf("d1=%d d2=%d d3=%d d4=%d  state=%d\r\n", d1, d2, d3, d4, (int)state);
+        Serial.printf("d1=%d d2=%d d3=%d d4=%d  state=%d\r\n",
+                      d1, d2, d3, d4, (int)state);
 
         switch (state)
         {
+        case State::WAIT_START:
+            // wszystko stoi, czekamy na przycisk
+            hMot1.setPower(0);
+            hMot2.setPower(0);
+            hMot3.setPower(0);
+            hMot4.setPower(0);
+
+            if (hBtn1.isPressed()) {
+                Serial.printf("hBtn1 pressed -> START automatu (SEARCH_CANYON)\r\n");
+                state = State::SEARCH_CANYON;
+                stateEntryTime = now;
+
+                // prosty debounce – poczekaj aż puści przycisk
+                while (hBtn1.isPressed()) {
+                    sys.delay(20);
+                }
+            }
+            break;
+
         case State::SEARCH_CANYON:
             // --- KROK 1: jedziemy do przodu, aż czujnik 3 zobaczy kanion ---
             hMot1.setPower(ROBOT_SPEED);   // jeśli jedzie w złą stronę -> zmień na -ROBOT_SPEED
